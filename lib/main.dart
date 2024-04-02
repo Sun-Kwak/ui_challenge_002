@@ -1,14 +1,29 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-import 'package:flutter/scheduler.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
-void main() async {
-  runApp(const MyApp());
+Future<void> preloadSVGs() async {
+  final svgList = [
+    'assets/forest-day.svg',
+    'assets/forest-night.svg',
+    'assets/man.svg',
+  ];
+  for (final asset in svgList) {
+    final loader = SvgAssetLoader(asset);
+    await svg.cache.putIfAbsent(
+      loader.cacheKey(null),
+          () => loader.loadBytes(null),
+    );
+  }
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await preloadSVGs();
+  runApp(const MainApp());
+}
+
+class MainApp extends StatelessWidget {
+  const MainApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -22,10 +37,10 @@ class MyApp extends StatelessWidget {
           // See this thread for more info:
           // https://twitter.com/biz84/status/1445400059894542337
           child: Center(
-              child: SizedBox(
-                width: 300,
-                child: CountdownAndRestart(),
-              )
+            child: SizedBox(
+              width: 500, // max allowed width
+              child: HomePage(),
+            ),
           ),
         ),
       ),
@@ -33,148 +48,136 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// Main demo UI (countdown + restart button)
-class CountdownAndRestart extends StatefulWidget {
-  const CountdownAndRestart({super.key});
-
-  @override
-  CountdownAndRestartState createState() => CountdownAndRestartState();
-}
-
-class CountdownAndRestartState extends State<CountdownAndRestart> with SingleTickerProviderStateMixin{
-  static const maxWidth = 300.0;
-  late Ticker _ticker;
-  late AnimationController _controller;
-  int _countdown = 10;
-
-  @override
-  void initState() {
-    super.initState();
-    _ticker = Ticker((elapsed) {
-      setState(() {
-        _countdown = 10 - elapsed.inSeconds;
-        if (_countdown <= 0) {
-          _countdown = 0;
-          _ticker.stop(); // Stop ticker when countdown reaches 0
-        }
-      });
-    });
-    _controller = AnimationController(
-      vsync: this,
-      duration: Duration(seconds: _countdown),
-    );
-    _controller.addListener(() {
-      setState(() {});
-    });
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        _controller.reset();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _ticker.dispose();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void startCountdown() {
-
-    _ticker.stop();
-    _ticker.start();
-    _controller.reset();
-    _controller.forward();
-  }
-
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    // TODO: Create PageFlipBuilder widget that can be used to flip between
+    // LightHomePage and DarkHomePage
+    return const LightHomePage();
+  }
+}
+
+class LightHomePage extends StatelessWidget {
+  const LightHomePage({super.key, this.onFlip});
+  final VoidCallback? onFlip;
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      data: ThemeData(
+        brightness: Brightness.light,
+        textTheme: TextTheme(
+          displaySmall: Theme.of(context)
+              .textTheme
+              .displaySmall!
+              .copyWith(color: Colors.black87, fontWeight: FontWeight.w600),
+        ),
+      ),
+      child: Scaffold(
+        body: Container(
+          padding: const EdgeInsets.all(24.0),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.red, width: 5),
+          ),
+          child: Column(
+            children: [
+              const ProfileHeader(prompt: 'Hello,\nsunshine!'),
+              const Spacer(),
+              SvgPicture.asset(
+                'assets/forest-day.svg',
+                semanticsLabel: 'Forest',
+                width: 300,
+                height: 300,
+              ),
+              const Spacer(),
+              BottomFlipIconButton(onFlip: onFlip),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class DarkHomePage extends StatelessWidget {
+  const DarkHomePage({super.key, this.onFlip});
+  final VoidCallback? onFlip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      data: ThemeData(
+          brightness: Brightness.dark,
+          textTheme: TextTheme(
+            displaySmall: Theme.of(context)
+                .textTheme
+                .displaySmall!
+                .copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+          )),
+      child: Scaffold(
+        body: Container(
+          padding: const EdgeInsets.all(24.0),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.red, width: 5),
+          ),
+          child: Column(
+            children: [
+              const ProfileHeader(prompt: 'Good night,\nsleep tight!'),
+              const Spacer(),
+              SvgPicture.asset(
+                'assets/forest-night.svg',
+                semanticsLabel: 'Forest',
+                width: 300,
+                height: 300,
+              ),
+              const Spacer(),
+              BottomFlipIconButton(onFlip: onFlip),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ProfileHeader extends StatelessWidget {
+  const ProfileHeader({super.key, required this.prompt});
+  final String prompt;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      bottom: false,
+      child: Row(
+        children: [
+          Text(prompt, style: Theme.of(context).textTheme.displaySmall),
+          const Spacer(),
+          SvgPicture.asset(
+            'assets/man.svg',
+            semanticsLabel: 'Profile',
+            width: 50,
+            height: 50,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class BottomFlipIconButton extends StatelessWidget {
+  const BottomFlipIconButton({super.key, this.onFlip});
+  final VoidCallback? onFlip;
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        SizedBox(
-          width: maxWidth,
-          height: maxWidth,
-          child: CustomPaint(
-            painter: CustomCounterPainter(
-              countdown: _countdown,
-              progress: _controller.value,
-            ),
-          ),
-        ),
-        const SizedBox(height: 32),
-        ElevatedButton(
-          onPressed: () {
-            startCountdown();
-          }, // TODO: Implement
-          child: const Text(
-            'Restart',
-            style: TextStyle(fontSize: 32),
-            textAlign: TextAlign.center,
-          ),
-        ),
+        IconButton(
+          onPressed: onFlip,
+          icon: const Icon(Icons.flip),
+        )
       ],
     );
   }
 }
-
-class CustomCounterPainter extends CustomPainter {
-  final int countdown;
-  final double progress;
-
-  CustomCounterPainter({required this.countdown, required this.progress});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.black
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = 20.0
-      ..style = PaintingStyle.stroke;
-
-    Offset center = size.center(Offset.zero);
-    final radius = size.width / 2 - paint.strokeWidth / 2;
-
-    // Draw background circle
-    paint.color = Colors.deepPurple.withOpacity(0.7);
-    canvas.drawCircle(center, radius, paint);
-
-
-    Rect rect = Rect.fromCircle(center: center, radius: radius);
-    final progressPaint = Paint()
-      ..color = Colors.deepPurple
-      ..strokeWidth = 20.0
-      ..style = PaintingStyle.stroke;
-
-    // Draw progress arc
-    //rect : 호의 경계
-    //startAngle : 호의 시작 각도
-    //sweepAngle : 호의 각도
-    //useCenter : 호의 중심을 사용할지 여부 (중심점과 연결됨)
-    //paint : 그리기에 사용할 Paint 객체
-    canvas.drawArc(rect, math.pi/2*3, progress == 0 ? 0 : math.pi * 2-(progress * math.pi * 2), false, progressPaint);
-    //
-
-    // Draw countdown text
-    TextPainter textPainter = TextPainter(
-      text: TextSpan(
-        text: '$countdown',
-        style: const TextStyle(fontSize: 100.0, fontWeight: FontWeight.w500, color: Colors.deepPurple),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(canvas, Offset(center.dx - textPainter.width / 2, center.dy - textPainter.height / 2));
-  }
-
-  @override
-  bool shouldRepaint(CustomCounterPainter oldDelegate) {
-    return true;
-  }
-}
-
-
-
