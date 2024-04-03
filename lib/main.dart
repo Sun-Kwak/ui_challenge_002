@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'dart:math' as math;
 
 Future<void> preloadSVGs() async {
   final svgList = [
@@ -23,11 +24,11 @@ void main() async {
 }
 
 class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+  const MainApp({Key? key});
 
   @override
   Widget build(BuildContext context) {
-    return  MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         body: Padding(
@@ -49,26 +50,28 @@ class MainApp extends StatelessWidget {
 }
 
 class HomePage extends StatelessWidget {
-  HomePage({super.key});
+  HomePage({Key? key});
+
   final pageFlipBuilderKey = GlobalKey<PageFlipBuilderState>();
+
   @override
   Widget build(BuildContext context) {
     // TODO: Create PageFlipBuilder widget that can be used to flip between
     // LightHomePage and DarkHomePage
     return PageFlipBuilder(
       key: pageFlipBuilderKey,
-      frontWidget: LightHomePage(onFlip: (){
+      frontWidget: LightHomePage(onFlip: () {
         pageFlipBuilderKey.currentState?.flip();
-      },),
-      backWidget: DarkHomePage(onFlip: (){
+      }),
+      backWidget: DarkHomePage(onFlip: () {
         pageFlipBuilderKey.currentState?.flip();
-      },),
+      }),
     );
   }
 }
 
 class LightHomePage extends StatelessWidget {
-  const LightHomePage({super.key, this.onFlip});
+  const LightHomePage({Key? key, this.onFlip});
 
   final VoidCallback? onFlip;
 
@@ -111,7 +114,7 @@ class LightHomePage extends StatelessWidget {
 }
 
 class DarkHomePage extends StatelessWidget {
-  const DarkHomePage({super.key, this.onFlip});
+  const DarkHomePage({Key? key, this.onFlip});
 
   final VoidCallback? onFlip;
 
@@ -153,7 +156,7 @@ class DarkHomePage extends StatelessWidget {
 }
 
 class ProfileHeader extends StatelessWidget {
-  const ProfileHeader({super.key, required this.prompt});
+  const ProfileHeader({Key? key, required this.prompt});
 
   final String prompt;
 
@@ -163,7 +166,7 @@ class ProfileHeader extends StatelessWidget {
       bottom: false,
       child: Row(
         children: [
-          Text(prompt, style: Theme.of(context).textTheme.displaySmall),
+          Text(prompt, style: Theme.of(context).textTheme.displaySmall!),
           const Spacer(),
           SvgPicture.asset(
             'assets/man.svg',
@@ -178,7 +181,7 @@ class ProfileHeader extends StatelessWidget {
 }
 
 class BottomFlipIconButton extends StatelessWidget {
-  const BottomFlipIconButton({super.key, this.onFlip});
+  const BottomFlipIconButton({Key? key, this.onFlip});
 
   final VoidCallback? onFlip;
 
@@ -199,6 +202,7 @@ class BottomFlipIconButton extends StatelessWidget {
 class PageFlipBuilder extends StatefulWidget {
   final Widget frontWidget;
   final Widget backWidget;
+
   const PageFlipBuilder({
     super.key,
     required this.frontWidget,
@@ -217,6 +221,8 @@ class PageFlipBuilderState extends State<PageFlipBuilder>
   late AnimationController _animationController2;
   late Animation<double> _animation2;
   bool _isFrontVisible = true;
+  double angle = 0;
+  bool _swipe = false;
 
   @override
   void initState() {
@@ -228,14 +234,17 @@ class PageFlipBuilderState extends State<PageFlipBuilder>
     _animation = Tween<double>(begin: 0, end: 0.5).animate(_animationController)
       ..addListener(() {
         setState(() {
-          if (_animationController.isCompleted || _animationController.isDismissed) {
+          if (_animationController.isCompleted ||
+              _animationController.isDismissed) {
             _isFrontVisible = !_isFrontVisible;
           }
         });
       });
-    _animation2 = Tween<double>(begin: 0, end: 0.5).animate(_animationController2)
-    ..addListener(() { setState(() {
-    });});
+    _animation2 =
+        Tween<double>(begin: 0, end: 0.5).animate(_animationController2)
+          ..addListener(() {
+            setState(() {});
+          });
   }
 
   @override
@@ -247,28 +256,90 @@ class PageFlipBuilderState extends State<PageFlipBuilder>
 
   void flip() {
     if (_isFrontVisible) {
-      _animationController.forward().then((value) => _animationController2.forward());
+      _animationController
+          .forward()
+          .then((value) => _animationController2.forward());
     } else {
-      _animationController.reverse().then((value) => _animationController2.reverse());
+      _animationController
+          .reverse()
+          .then((value) => _animationController2.reverse());
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Transform(
-      transform: Matrix4.identity()
-        ..setEntry(3, 2, 0.001)
-        ..rotateY((_animation.value+_animation2.value) * 3.14),
-      alignment: Alignment.center,
-      child: _isFrontVisible
-          ? widget.frontWidget
-          : Transform(
-              transform: Matrix4.identity()..rotateY(3.14),
-              alignment: Alignment.center,
-              child: widget.backWidget),
+    return GestureDetector(
+      onPanUpdate: (details) {
+        setState(() {
+          angle += details.delta.dx / 200 / math.pi;
+          print(angle.abs());
+          if (angle > 0.5.abs()) {
+            setState(() {});
+          }
+        });
+      },
+      onPanEnd: (details) {
+        if (angle > 0.5.abs()) {
+          setState(() {
+            angle = 1;
+          });
+        } else {
+          setState(() {
+            angle = 0;
+          });
+        }
+      },
+      child: Transform(
+        transform: Matrix4.identity()
+          ..setEntry(3, 2, 0.001)
+          ..rotateY((_animation.value + _animation2.value) * math.pi)
+          ..rotateY((angle) * math.pi),
+        alignment: Alignment.center,
+        child: _isFrontVisible
+            ? widget.frontWidget
+            : Transform(
+                transform: Matrix4.identity()..rotateY(math.pi),
+                alignment: Alignment.center,
+                child: widget.backWidget),
+      ),
     );
   }
 }
-//
-// final GlobalKey<PageFlipBuilderState> pageFlipBuilderKey =
-// GlobalKey<PageFlipBuilderState>();
+
+class AnimatedFlipBuilder extends StatefulWidget {
+  final Widget child;
+
+  const AnimatedFlipBuilder({required this.child, super.key});
+
+  @override
+  State<AnimatedFlipBuilder> createState() => _AnimatedFlipBuilderState();
+}
+
+class _AnimatedFlipBuilderState extends State<AnimatedFlipBuilder>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(seconds: 2),
+    );
+    _animation = Tween<double>(
+      begin: 100.0,
+      end: 200.0,
+    ).animate(_controller);
+    _controller.forward();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+        animation: _animation,
+        builder: (context, child) {
+          return widget.child;
+        });
+  }
+}
