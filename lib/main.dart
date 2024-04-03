@@ -11,7 +11,7 @@ Future<void> preloadSVGs() async {
     final loader = SvgAssetLoader(asset);
     await svg.cache.putIfAbsent(
       loader.cacheKey(null),
-          () => loader.loadBytes(null),
+      () => loader.loadBytes(null),
     );
   }
 }
@@ -57,14 +57,16 @@ class HomePage extends StatelessWidget {
     // LightHomePage and DarkHomePage
     return const PageFlipBuilder(
       frontWidget: LightHomePage(),
-      backWidget:  DarkHomePage(),
+      backWidget: DarkHomePage(),
     );
   }
 }
 
 class LightHomePage extends StatelessWidget {
   const LightHomePage({super.key, this.onFlip});
+
   final VoidCallback? onFlip;
+
   @override
   Widget build(BuildContext context) {
     return Theme(
@@ -105,6 +107,7 @@ class LightHomePage extends StatelessWidget {
 
 class DarkHomePage extends StatelessWidget {
   const DarkHomePage({super.key, this.onFlip});
+
   final VoidCallback? onFlip;
 
   @override
@@ -146,6 +149,7 @@ class DarkHomePage extends StatelessWidget {
 
 class ProfileHeader extends StatelessWidget {
   const ProfileHeader({super.key, required this.prompt});
+
   final String prompt;
 
   @override
@@ -170,7 +174,9 @@ class ProfileHeader extends StatelessWidget {
 
 class BottomFlipIconButton extends StatelessWidget {
   const BottomFlipIconButton({super.key, this.onFlip});
+
   final VoidCallback? onFlip;
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -242,9 +248,13 @@ class _PageFlipBuilderState extends State<PageFlipBuilder>
           ..setEntry(3, 2, 0.001)
           ..rotateY(_animation.value * 3.14),
         alignment: Alignment.center,
-        child: _isFrontVisible ? widget.frontWidget : widget.backWidget,
+        child: _isFrontVisible
+            ? widget.frontWidget
+            : Transform(
+                transform: Matrix4.identity()..rotateY(3.14),
+                alignment: Alignment.center,
+                child: widget.backWidget),
       ),
     );
   }
 }
-
