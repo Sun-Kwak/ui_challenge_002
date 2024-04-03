@@ -194,49 +194,59 @@ class BottomFlipIconButton extends StatelessWidget {
 class PageFlipBuilder extends StatefulWidget {
   final Widget frontWidget;
   final Widget backWidget;
-  final Duration flipDuration;
 
   const PageFlipBuilder({
     super.key,
     required this.frontWidget,
     required this.backWidget,
-    this.flipDuration = const Duration(milliseconds: 500),
   });
 
   @override
-  _PageFlipBuilderState createState() => _PageFlipBuilderState();
+  PageFlipBuilderState createState() => PageFlipBuilderState();
 }
 
-class _PageFlipBuilderState extends State<PageFlipBuilder>
-    with SingleTickerProviderStateMixin {
+class PageFlipBuilderState extends State<PageFlipBuilder>
+    with TickerProviderStateMixin {
+  final flipDuration = const Duration(milliseconds: 200);
   late AnimationController _animationController;
   late Animation<double> _animation;
+  late AnimationController _animationController2;
+  late Animation<double> _animation2;
   bool _isFrontVisible = true;
 
   @override
   void initState() {
     super.initState();
     _animationController =
-        AnimationController(vsync: this, duration: widget.flipDuration);
-    _animation = Tween<double>(begin: 0, end: 1).animate(_animationController)
+        AnimationController(vsync: this, duration: flipDuration);
+    _animationController2 =
+        AnimationController(vsync: this, duration: flipDuration);
+    _animation = Tween<double>(begin: 0, end: 0.5).animate(_animationController)
       ..addListener(() {
-        setState(() {});
+        setState(() {
+          if (_animationController.isCompleted || _animationController.isDismissed) {
+            _isFrontVisible = !_isFrontVisible;
+          }
+        });
       });
+    _animation2 = Tween<double>(begin: 0, end: 0.5).animate(_animationController2)
+    ..addListener(() { setState(() {
+    });});
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _animationController2.dispose();
     super.dispose();
   }
 
   void _flip() {
     if (_isFrontVisible) {
-      _animationController.forward();
+      _animationController.forward().then((value) => _animationController2.forward());
     } else {
-      _animationController.reverse();
+      _animationController.reverse().then((value) => _animationController2.reverse());
     }
-    _isFrontVisible = !_isFrontVisible;
   }
 
   @override
@@ -246,7 +256,7 @@ class _PageFlipBuilderState extends State<PageFlipBuilder>
       child: Transform(
         transform: Matrix4.identity()
           ..setEntry(3, 2, 0.001)
-          ..rotateY(_animation.value * 3.14),
+          ..rotateY((_animation.value+_animation2.value) * 3.14),
         alignment: Alignment.center,
         child: _isFrontVisible
             ? widget.frontWidget
