@@ -287,16 +287,33 @@ class PageFlipBuilderState extends State<PageFlipBuilder>
   Widget build(BuildContext context) {
     // print('??:${_panEndAnimation2.value}');
     return GestureDetector(
-
       onPanUpdate: (details) {
         setState(() {
-          angle += details.delta.dx / 200 / math.pi;
+          angle += details.delta.dx / 150 / math.pi;
+          // double remainder = angle % 6;
+          // // 값이 1을 넘으면 0으로 되돌리기
+          // while (angle >= 1.5) {
+          //   angle -= 1.5;
+          // }
+          // // 값이 -1을 넘으면 0으로 되돌리기
+          // while (angle <= -1.5) {
+          //   angle += 1.5;
+          // }
         });
-        if ((angle.abs() ~/ 0.5) % 2 == 0) {
-          _isFrontVisible = true;
+        if(angle.abs() % 6 > 0.5){
+          if (((angle.abs() - 0.5) ~/ 1) % 2 == 0) {
+            // print(((angle.abs() - 1))~/ 0.5 % 2);
+            print((angle.abs()% 6));
+            _isFrontVisible = false;
+          } else {
+            // print(((angle.abs() - 1))~/ 0.5 % 2);
+            print((angle.abs()% 6));
+            _isFrontVisible = true;
+          }
         } else {
-          _isFrontVisible = false;
+          _isFrontVisible = true;
         }
+
       },
       onPanEnd: (details) {
         _panEndAnimationController2.reset();
@@ -307,26 +324,32 @@ class PageFlipBuilderState extends State<PageFlipBuilder>
           ..setEntry(3, 2, 0.001)
           ..rotateY((_animation.value + _animation2.value) * math.pi),
         alignment: Alignment.center,
-        child: _isFrontVisible
-            ? AnimatedFlipBuilder(child: widget.frontWidget, angle: angle,controller: _panEndAnimation2.value)
-            : Transform(
-                transform: Matrix4.identity()..rotateY(math.pi),
-                alignment: Alignment.center,
-                child: AnimatedFlipBuilder(child: widget.backWidget,angle: angle,controller: _panEndAnimation2.value,)),
+        child: AnimatedFlipBuilder(
+          frontWidget: widget.frontWidget,
+          backWidget: widget.backWidget,
+          isFrontVisible: _isFrontVisible,
+          angle: angle,
+          controller: _panEndAnimation2.value,
+        ),
       ),
     );
   }
 }
 
 class AnimatedFlipBuilder extends StatefulWidget {
-  final Widget child;
+  final Widget frontWidget;
+  final Widget backWidget;
+  final bool isFrontVisible;
   final double angle;
   final double controller;
 
-  const AnimatedFlipBuilder({
-    required this.controller,
-    required this.angle,
-    required this.child, super.key});
+  const AnimatedFlipBuilder(
+      {required this.controller,
+      required this.angle,
+      required this.frontWidget,
+      required this.backWidget,
+      required this.isFrontVisible,
+      super.key});
 
   @override
   State<AnimatedFlipBuilder> createState() => _AnimatedFlipBuilderState();
@@ -337,6 +360,7 @@ class _AnimatedFlipBuilderState extends State<AnimatedFlipBuilder>
   late Animation<double> animation;
   late AnimationController _controller;
   late double _angle;
+  bool isRotated = false;
 
   @override
   void initState() {
@@ -349,40 +373,66 @@ class _AnimatedFlipBuilderState extends State<AnimatedFlipBuilder>
     animation = Tween<double>(begin: 0, end: 1).animate(_controller)
       ..addListener(() {
         setState(() {
-          _angle = widget.angle;
+          // _angle = widget.angle;
           if ((_angle.abs() ~/ 0.5) % 2 == 0) {
-            _angle = _angle - (_angle*animation.value);
-
+            _angle = _angle - (_angle * animation.value);
           } else {
-            _angle = (1-_angle) + (_angle*animation.value);
-
-
+            _angle = _angle + ((1-_angle) * animation.value);
           }
         });
       });
   }
+
   @override
   void didUpdateWidget(covariant AnimatedFlipBuilder oldWidget) {
-    if(oldWidget.controller != widget.controller) {
-      _controller.reset();
-      _controller.forward();
+    if (oldWidget.controller != widget.controller) {
+      _controller.forward().then((value) {
+        _controller.reset();
+      });
     }
-    if(oldWidget.angle != widget.angle) {
+    if (oldWidget.angle != widget.angle) {
       _angle = widget.angle;
     }
+    // if (oldWidget.isFrontVisible != widget.isFrontVisible) {
+    //   isRotated = !isRotated;
+    // }
     super.didUpdateWidget(oldWidget);
   }
 
   @override
   Widget build(BuildContext context) {
-
     return AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
           return Transform(
-              alignment: Alignment.center,
-              transform: Matrix4.rotationY(_angle * math.pi),
-              child: widget.child);
+            alignment: Alignment.center,
+            transform: Matrix4.rotationY(_angle * math.pi),
+            child: widget.isFrontVisible
+                ? RotatedFlip(
+                    isRotated: isRotated,
+                    child: widget.frontWidget,
+                  )
+                : RotatedFlip(
+                    isRotated: !isRotated,
+                    child: widget.backWidget,
+                  ),
+          );
         });
+  }
+}
+
+class RotatedFlip extends StatelessWidget {
+  final bool isRotated;
+  final Widget child;
+
+  const RotatedFlip({required this.child, required this.isRotated, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform(
+      transform: Matrix4.rotationY(isRotated ? math.pi : 0),
+      alignment: Alignment.center,
+      child: child,
+    );
   }
 }
