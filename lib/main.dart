@@ -27,7 +27,7 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return  MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         body: Padding(
@@ -49,15 +49,20 @@ class MainApp extends StatelessWidget {
 }
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
+  HomePage({super.key});
+  final pageFlipBuilderKey = GlobalKey<PageFlipBuilderState>();
   @override
   Widget build(BuildContext context) {
     // TODO: Create PageFlipBuilder widget that can be used to flip between
     // LightHomePage and DarkHomePage
-    return const PageFlipBuilder(
-      frontWidget: LightHomePage(),
-      backWidget: DarkHomePage(),
+    return PageFlipBuilder(
+      key: pageFlipBuilderKey,
+      frontWidget: LightHomePage(onFlip: (){
+        pageFlipBuilderKey.currentState?.flip();
+      },),
+      backWidget: DarkHomePage(onFlip: (){
+        pageFlipBuilderKey.currentState?.flip();
+      },),
     );
   }
 }
@@ -194,7 +199,6 @@ class BottomFlipIconButton extends StatelessWidget {
 class PageFlipBuilder extends StatefulWidget {
   final Widget frontWidget;
   final Widget backWidget;
-
   const PageFlipBuilder({
     super.key,
     required this.frontWidget,
@@ -241,7 +245,7 @@ class PageFlipBuilderState extends State<PageFlipBuilder>
     super.dispose();
   }
 
-  void _flip() {
+  void flip() {
     if (_isFrontVisible) {
       _animationController.forward().then((value) => _animationController2.forward());
     } else {
@@ -251,20 +255,20 @@ class PageFlipBuilderState extends State<PageFlipBuilder>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _flip,
-      child: Transform(
-        transform: Matrix4.identity()
-          ..setEntry(3, 2, 0.001)
-          ..rotateY((_animation.value+_animation2.value) * 3.14),
-        alignment: Alignment.center,
-        child: _isFrontVisible
-            ? widget.frontWidget
-            : Transform(
-                transform: Matrix4.identity()..rotateY(3.14),
-                alignment: Alignment.center,
-                child: widget.backWidget),
-      ),
+    return Transform(
+      transform: Matrix4.identity()
+        ..setEntry(3, 2, 0.001)
+        ..rotateY((_animation.value+_animation2.value) * 3.14),
+      alignment: Alignment.center,
+      child: _isFrontVisible
+          ? widget.frontWidget
+          : Transform(
+              transform: Matrix4.identity()..rotateY(3.14),
+              alignment: Alignment.center,
+              child: widget.backWidget),
     );
   }
 }
+//
+// final GlobalKey<PageFlipBuilderState> pageFlipBuilderKey =
+// GlobalKey<PageFlipBuilderState>();
