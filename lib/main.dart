@@ -220,15 +220,31 @@ class PageFlipBuilderState extends State<PageFlipBuilder>
   late Animation<double> _animation;
   late AnimationController _animationController2;
   late Animation<double> _animation2;
+  late AnimationController _panEndAnimationController2;
+  late Animation<double> _panEndAnimation2;
   bool _isFrontVisible = true;
   double angle = 0;
-  bool _swipe = false;
 
   @override
   void initState() {
     super.initState();
     _animationController =
         AnimationController(vsync: this, duration: flipDuration);
+    _panEndAnimationController2 =
+        AnimationController(vsync: this, duration: flipDuration);
+    _panEndAnimation2 =
+        Tween<double>(begin: 0, end: 1).animate(_panEndAnimationController2)
+          ..addListener(() {
+            setState(() {
+              // print(_panEndAnimation2.value);
+              // if ((angle.abs() ~/ 0.5) % 2 == 0) {
+              //     angle = (1-angle) + (angle*_panEndAnimation2.value);
+              //     print(angle);
+              // } else {
+              //     angle = angle - (angle*_panEndAnimation2.value);
+              // }
+            });
+          });
     _animationController2 =
         AnimationController(vsync: this, duration: flipDuration);
     _animation = Tween<double>(begin: 0, end: 0.5).animate(_animationController)
@@ -251,6 +267,7 @@ class PageFlipBuilderState extends State<PageFlipBuilder>
   void dispose() {
     _animationController.dispose();
     _animationController2.dispose();
+    _panEndAnimationController2.dispose();
     super.dispose();
   }
 
@@ -268,39 +285,34 @@ class PageFlipBuilderState extends State<PageFlipBuilder>
 
   @override
   Widget build(BuildContext context) {
+    // print('??:${_panEndAnimation2.value}');
     return GestureDetector(
+
       onPanUpdate: (details) {
         setState(() {
           angle += details.delta.dx / 200 / math.pi;
-          print(angle.abs());
-          if (angle > 0.5.abs()) {
-            setState(() {});
-          }
         });
+        if ((angle.abs() ~/ 0.5) % 2 == 0) {
+          _isFrontVisible = true;
+        } else {
+          _isFrontVisible = false;
+        }
       },
       onPanEnd: (details) {
-        if (angle > 0.5.abs()) {
-          setState(() {
-            angle = 1;
-          });
-        } else {
-          setState(() {
-            angle = 0;
-          });
-        }
+        _panEndAnimationController2.reset();
+        _panEndAnimationController2.forward();
       },
       child: Transform(
         transform: Matrix4.identity()
           ..setEntry(3, 2, 0.001)
-          ..rotateY((_animation.value + _animation2.value) * math.pi)
-          ..rotateY((angle) * math.pi),
+          ..rotateY((_animation.value + _animation2.value) * math.pi),
         alignment: Alignment.center,
         child: _isFrontVisible
-            ? widget.frontWidget
+            ? AnimatedFlipBuilder(child: widget.frontWidget, angle: angle,controller: _panEndAnimation2.value)
             : Transform(
                 transform: Matrix4.identity()..rotateY(math.pi),
                 alignment: Alignment.center,
-                child: widget.backWidget),
+                child: AnimatedFlipBuilder(child: widget.backWidget,angle: angle,controller: _panEndAnimation2.value,)),
       ),
     );
   }
@@ -308,8 +320,13 @@ class PageFlipBuilderState extends State<PageFlipBuilder>
 
 class AnimatedFlipBuilder extends StatefulWidget {
   final Widget child;
+  final double angle;
+  final double controller;
 
-  const AnimatedFlipBuilder({required this.child, super.key});
+  const AnimatedFlipBuilder({
+    required this.controller,
+    required this.angle,
+    required this.child, super.key});
 
   @override
   State<AnimatedFlipBuilder> createState() => _AnimatedFlipBuilderState();
@@ -317,29 +334,55 @@ class AnimatedFlipBuilder extends StatefulWidget {
 
 class _AnimatedFlipBuilderState extends State<AnimatedFlipBuilder>
     with SingleTickerProviderStateMixin {
+  late Animation<double> animation;
   late AnimationController _controller;
-  late Animation<double> _animation;
+  late double _angle;
 
   @override
   void initState() {
     super.initState();
+    _angle = 0;
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(seconds: 2),
+      duration: const Duration(milliseconds: 400),
     );
-    _animation = Tween<double>(
-      begin: 100.0,
-      end: 200.0,
-    ).animate(_controller);
-    _controller.forward();
+    animation = Tween<double>(begin: 0, end: 1).animate(_controller)
+      ..addListener(() {
+        setState(() {
+          _angle = widget.angle;
+          if ((_angle.abs() ~/ 0.5) % 2 == 0) {
+            _angle = _angle - (_angle*animation.value);
+
+          } else {
+            _angle = (1-_angle) + (_angle*animation.value);
+
+
+          }
+        });
+      });
+  }
+  @override
+  void didUpdateWidget(covariant AnimatedFlipBuilder oldWidget) {
+    if(oldWidget.controller != widget.controller) {
+      _controller.reset();
+      _controller.forward();
+    }
+    if(oldWidget.angle != widget.angle) {
+      _angle = widget.angle;
+    }
+    super.didUpdateWidget(oldWidget);
   }
 
   @override
   Widget build(BuildContext context) {
+
     return AnimatedBuilder(
-        animation: _animation,
+        animation: _controller,
         builder: (context, child) {
-          return widget.child;
+          return Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.rotationY(_angle * math.pi),
+              child: widget.child);
         });
   }
 }
