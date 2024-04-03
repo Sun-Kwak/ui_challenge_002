@@ -55,7 +55,10 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     // TODO: Create PageFlipBuilder widget that can be used to flip between
     // LightHomePage and DarkHomePage
-    return const LightHomePage();
+    return const PageFlipBuilder(
+      frontWidget: LightHomePage(),
+      backWidget:  DarkHomePage(),
+    );
   }
 }
 
@@ -181,3 +184,67 @@ class BottomFlipIconButton extends StatelessWidget {
     );
   }
 }
+
+class PageFlipBuilder extends StatefulWidget {
+  final Widget frontWidget;
+  final Widget backWidget;
+  final Duration flipDuration;
+
+  const PageFlipBuilder({
+    super.key,
+    required this.frontWidget,
+    required this.backWidget,
+    this.flipDuration = const Duration(milliseconds: 500),
+  });
+
+  @override
+  _PageFlipBuilderState createState() => _PageFlipBuilderState();
+}
+
+class _PageFlipBuilderState extends State<PageFlipBuilder>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+  bool _isFrontVisible = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController =
+        AnimationController(vsync: this, duration: widget.flipDuration);
+    _animation = Tween<double>(begin: 0, end: 1).animate(_animationController)
+      ..addListener(() {
+        setState(() {});
+      });
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _flip() {
+    if (_isFrontVisible) {
+      _animationController.forward();
+    } else {
+      _animationController.reverse();
+    }
+    _isFrontVisible = !_isFrontVisible;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _flip,
+      child: Transform(
+        transform: Matrix4.identity()
+          ..setEntry(3, 2, 0.001)
+          ..rotateY(_animation.value * 3.14),
+        alignment: Alignment.center,
+        child: _isFrontVisible ? widget.frontWidget : widget.backWidget,
+      ),
+    );
+  }
+}
+
