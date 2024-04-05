@@ -12,7 +12,7 @@ Future<void> preloadSVGs() async {
     final loader = SvgAssetLoader(asset);
     await svg.cache.putIfAbsent(
       loader.cacheKey(null),
-          () => loader.loadBytes(null),
+      () => loader.loadBytes(null),
     );
   }
 }
@@ -215,78 +215,24 @@ class PageFlipBuilder extends StatefulWidget {
 
 class PageFlipBuilderState extends State<PageFlipBuilder>
     with TickerProviderStateMixin {
-  final flipDuration = const Duration(milliseconds: 500);
-  late AnimationController _animationController;
-  late Animation<double> _animation;
-  late AnimationController _animationController2;
-  late Animation<double> _animation2;
-  bool _isFrontVisible = true;
-  double angle = 0;
-
   final animatedFlipBuilderKey = GlobalKey<_AnimatedFlipBuilderState>();
 
-  @override
-  void initState() {
-    super.initState();
-    _animationController =
-        AnimationController(vsync: this, duration: flipDuration);
-
-    _animationController2 =
-        AnimationController(vsync: this, duration: flipDuration);
-    _animation = Tween<double>(begin: 0, end: 0.5).animate(_animationController)
-      ..addListener(() {
-        setState(() {
-          if (_animationController.isCompleted ||
-              _animationController.isDismissed) {
-            animatedFlipBuilderKey.currentState?.changeSide();
-          }
-        });
-      });
-    _animation2 =
-    Tween<double>(begin: 0, end: 0.5).animate(_animationController2)
-      ..addListener(() {
-        setState(() {
-          // if(_animationController2.isCompleted || _animationController2.isDismissed){
-          //   if(animatedFlipBuilderKey.currentState?.isFrontVisible == true){
-          //
-          //   }
-          // }
-        });
-      });
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    _animationController2.dispose();
-    super.dispose();
-  }
-
   void flip() {
-    if (animatedFlipBuilderKey.currentState?.isFrontVisible == true) {
-      // _animationController.reset();
-      _animationController
-          .forward()
-          .then((value) => _animationController2.forward());
-    } else {
-      // _animationController.reset();
-      _animationController
-          .reverse()
-          .then((value) => _animationController2.reverse());
-    }
+    animatedFlipBuilderKey.currentState?.flip();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Transform(
-      transform: Matrix4.identity()
-        ..setEntry(3, 2, 0.001)
-        ..rotateY((_animation.value + _animation2.value) * math.pi),
-      alignment: Alignment.center,
-      child: AnimatedFlipBuilder(
-        key: animatedFlipBuilderKey,
-        frontWidget: widget.frontWidget,
-        backWidget: widget.backWidget,
+    return GestureDetector(
+      onPanUpdate: (details) {},
+      child: Transform(
+        transform: Matrix4.identity()..setEntry(3, 2, 0.001),
+        alignment: Alignment.center,
+        child: AnimatedFlipBuilder(
+          key: animatedFlipBuilderKey,
+          frontWidget: widget.frontWidget,
+          backWidget: widget.backWidget,
+        ),
       ),
     );
   }
@@ -295,26 +241,24 @@ class PageFlipBuilderState extends State<PageFlipBuilder>
 class AnimatedFlipBuilder extends StatefulWidget {
   final Widget frontWidget;
   final Widget backWidget;
-  // final double angle;
 
-  const AnimatedFlipBuilder({
-    // required this.angle,
-    required this.frontWidget,
-    required this.backWidget,
-    super.key});
+  const AnimatedFlipBuilder(
+      {required this.frontWidget, required this.backWidget, super.key});
 
   @override
   State<AnimatedFlipBuilder> createState() => _AnimatedFlipBuilderState();
 }
 
 class _AnimatedFlipBuilderState extends State<AnimatedFlipBuilder>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late Animation<double> animation;
   late AnimationController _controller;
-  double angle= 0;
-  bool isRotated = false;
+  double startAngle = 0;
+  double dragAngle = 0;
+  double endAngle = 1;
   bool isFrontVisible = true;
   double remainingAngle = 0;
+  bool isFlip = false;
 
   @override
   void initState() {
@@ -325,9 +269,7 @@ class _AnimatedFlipBuilderState extends State<AnimatedFlipBuilder>
     );
     animation = Tween<double>(begin: 0, end: 1).animate(_controller)
       ..addListener(() {
-        setState(() {
-
-        });
+        setState(() {});
       });
   }
 
@@ -342,86 +284,115 @@ class _AnimatedFlipBuilderState extends State<AnimatedFlipBuilder>
     return (number * multiplier).roundToDouble() / multiplier;
   }
 
-  void changeSide() {
-    isFrontVisible = !isFrontVisible;
-    // print(isFrontVisible);
+  void flip() {
+    setState(() {
+      endAngle = 1;
+      animation =
+          Tween<double>(begin: startAngle, end: endAngle).animate(_controller);
+      if (isFrontVisible) {
+        _controller.forward().then((value) {
+          // isFrontVisible = false;
+          print('front');
+        });
+      } else {
+        _controller.reverse().then((value) {
+          // isFrontVisible = true;
+          print('back');
+        });
+      }
+    });
   }
+
+  // bool showFront(){
+  //   bool showFront = true;
+  //   if(angle.abs() % 6 > 0.5){
+  //     if (((angle.abs() - 0.5) ~/ 1) % 2 == 0) {
+  //       showFront = isFrontVisible ? false : true;
+  //     } else {
+  //       showFront = isFrontVisible  ? true : false;
+  //     }
+  //   } else {
+  //     showFront = isFrontVisible  ? true : false;
+  //   }
+  //   return showFront;
+  // }
 
   @override
   Widget build(BuildContext context) {
-
-
     return GestureDetector(
       onPanStart: (details) {
-        _controller.reset();
-
-        // remainingAngle = 0;
-        if(isFrontVisible){
-          angle = 0;
-          // isRotated = true;
-        } else {
-          angle = math.pi;
-          // isRotated = false;
-        }
+        print('start : $dragAngle');
+        print(animation.value);
+        // _controller.reset();
       },
       onPanUpdate: (details) {
         setState(() {
-          print(animation.value);
-          angle += details.delta.dx / 150 / math.pi;
-          int roundedAngle = roundWithDecimalPlaces(angle, 0).toInt();
-          remainingAngle = angle - roundedAngle;
-
+          dragAngle += details.delta.dx / 150 / math.pi;
+          // print('update : $dragAngle');
+          // print(startAngle);
+          // int roundedAngle = roundWithDecimalPlaces(startAngle, 0).toInt();
+          // print(roundedAngle);
+          // endAngel = startAngel - roundedAngle;
+          // print(endAngel);
         });
-        if(angle.abs() % 6 > 0.5){
-          if (((angle.abs() - 0.5) ~/ 1) % 2 == 0) {
-            isFrontVisible = false;
+        if (dragAngle.abs() % 6 > 0.5) {
+          // print(angle.abs());
+          if (((dragAngle.abs() - 0.5) ~/ 1) % 2 == 0) {
+            endAngle = dragAngle - roundWithDecimalPlaces(dragAngle, 0);
           } else {
-            isFrontVisible = true;
+            endAngle = dragAngle - roundWithDecimalPlaces(dragAngle, 0);
           }
         } else {
-          isFrontVisible = true;
+          // print(angle.abs());
+          endAngle = dragAngle - roundWithDecimalPlaces(dragAngle, 0);
         }
-
       },
       onPanEnd: (details) {
+        setState(() {
+          _controller.value = 0;
+          animation = Tween<double>(begin: 0, end: endAngle)
+              .animate(_controller);
+          if (isFrontVisible) {
+            _controller.forward().then((value) {
+              dragAngle = 0;
+              _controller.reset();
+              print('1:$isFrontVisible : $dragAngle');
+            });
+          } else {
+            _controller.forward().then((value) {
+              dragAngle = 1;
+              _controller.reset();
+              print('2:$isFrontVisible : $dragAngle');
+            });
+          }
+        });
 
-
-        _controller.forward();
-        // angle = angle + (roundedAngel - angle) / animation.value == 0 ? 1 : animation.value;
       },
       child: AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
+            double totalAngle = dragAngle - animation.value;
+
+            bool showFront = totalAngle.abs() % 6 < 0.5
+                ? ((totalAngle.abs() - 0.5) ~/ 1) % 2 == 0
+                : totalAngle.abs() % 6 > 0.5
+                    ? ((totalAngle.abs() - 0.5) ~/ 1) % 2 != 0
+                    : totalAngle.abs() % 6 <= 0.5;
+            isFrontVisible = showFront; // isFrontVisible 값 업데이트
+            // print(animation.value);
+            // print(totalAngle);
+            // print(isFrontVisible);
             return Transform(
-              alignment: Alignment.center,
-              transform: Matrix4.rotationY((angle - (remainingAngle) * animation.value) * math.pi),
-              child: isFrontVisible
-                  ? RotatedFlip(
-                isRotated: isRotated,
-                child: widget.frontWidget,
-              )
-                  : RotatedFlip(
-                isRotated: !isRotated,
-                child: widget.backWidget,
-              ),
-            );
+                alignment: Alignment.center,
+                transform:
+                    Matrix4.rotationY((dragAngle - animation.value) * math.pi),
+                child: showFront
+                    ? widget.frontWidget
+                    : Transform(
+                        transform: Matrix4.rotationY(math.pi),
+                        alignment: Alignment.center,
+                        child: widget.backWidget));
           }),
-    );
-  }
-}
-
-class RotatedFlip extends StatelessWidget {
-  final bool isRotated;
-  final Widget child;
-
-  const RotatedFlip({required this.child, required this.isRotated, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform(
-      transform: Matrix4.rotationY(isRotated ? math.pi : 0),
-      alignment: Alignment.center,
-      child: child,
     );
   }
 }
