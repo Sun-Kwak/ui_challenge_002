@@ -285,23 +285,30 @@ class _AnimatedFlipBuilderState extends State<AnimatedFlipBuilder>
   }
 
   void flip() {
-    setState(() {
-      endAngle = 1;
-      animation =
-          Tween<double>(begin: startAngle, end: endAngle).animate(_controller);
-      if (isFrontVisible) {
-        _controller.forward().then((value) {
-          // isFrontVisible = false;
-          print('front');
-        });
-      } else {
-        _controller.reverse().then((value) {
-          // isFrontVisible = true;
-          print('back');
-        });
-      }
-    });
+    if (!_controller.isAnimating) { // 애니메이션이 진행 중이 아닐 때만 실행
+      setState(() {
+        _controller.value = 0;
+        if (isFrontVisible) {
+          endAngle = 1;
+          animation = Tween<double>(begin: 0, end: endAngle).animate(_controller);
+          _controller.forward().then((value) {
+            dragAngle = 1;
+            _controller.reset();
+            // isFrontVisible = false;
+          });
+        } else {
+          endAngle = -1;
+          animation = Tween<double>(begin: 0, end: endAngle).animate(_controller);
+          _controller.forward().then((value) {
+            dragAngle = 0;
+            _controller.reset();
+            // isFrontVisible = true;
+          });
+        }
+      });
+    }
   }
+
 
   // bool showFront(){
   //   bool showFront = true;
@@ -326,46 +333,45 @@ class _AnimatedFlipBuilderState extends State<AnimatedFlipBuilder>
         // _controller.reset();
       },
       onPanUpdate: (details) {
-        setState(() {
-          dragAngle += details.delta.dx / 150 / math.pi;
-          // print('update : $dragAngle');
-          // print(startAngle);
-          // int roundedAngle = roundWithDecimalPlaces(startAngle, 0).toInt();
-          // print(roundedAngle);
-          // endAngel = startAngel - roundedAngle;
-          // print(endAngel);
-        });
-        if (dragAngle.abs() % 6 > 0.5) {
-          // print(angle.abs());
-          if (((dragAngle.abs() - 0.5) ~/ 1) % 2 == 0) {
-            endAngle = dragAngle - roundWithDecimalPlaces(dragAngle, 0);
+        if (!_controller.isAnimating) { // 애니메이션이 진행 중이 아닐 때에만 실행
+          setState(() {
+            dragAngle += details.delta.dx / 150 / math.pi;
+          });
+          if (dragAngle.abs() % 6 > 0.5) {
+            // print(angle.abs());
+            if (((dragAngle.abs() - 0.5) ~/ 1) % 2 == 0) {
+              endAngle = dragAngle - roundWithDecimalPlaces(dragAngle, 0);
+            } else {
+              endAngle = dragAngle - roundWithDecimalPlaces(dragAngle, 0);
+            }
           } else {
+            // print(angle.abs());
             endAngle = dragAngle - roundWithDecimalPlaces(dragAngle, 0);
           }
-        } else {
-          // print(angle.abs());
-          endAngle = dragAngle - roundWithDecimalPlaces(dragAngle, 0);
         }
       },
       onPanEnd: (details) {
-        setState(() {
-          _controller.value = 0;
-          animation = Tween<double>(begin: 0, end: endAngle)
-              .animate(_controller);
-          if (isFrontVisible) {
-            _controller.forward().then((value) {
-              dragAngle = 0;
-              _controller.reset();
-              print('1:$isFrontVisible : $dragAngle');
-            });
-          } else {
-            _controller.forward().then((value) {
-              dragAngle = 1;
-              _controller.reset();
-              print('2:$isFrontVisible : $dragAngle');
-            });
-          }
-        });
+        if (!_controller.isAnimating){
+          setState(() {
+            _controller.value = 0;
+            animation = Tween<double>(begin: 0, end: endAngle)
+                .animate(_controller);
+            if (isFrontVisible) {
+              _controller.forward().then((value) {
+                dragAngle = 0;
+                _controller.reset();
+                print('1:$isFrontVisible : $dragAngle');
+              });
+            } else {
+              _controller.forward().then((value) {
+                dragAngle= 1;
+                _controller.reset();
+                print('2:$isFrontVisible : $dragAngle');
+              });
+            }
+          });
+        }
+
 
       },
       child: AnimatedBuilder(
