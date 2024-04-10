@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class PageFlipBuilder extends StatefulWidget {
   final Widget frontWidget;
@@ -73,7 +74,7 @@ class PageFlipBuilderState extends State<PageFlipBuilder>
   void _handlePanUpdate(DragUpdateDetails details) {
     if (!_controller.isAnimating) {
       setState(() {
-        currentAngle += details.delta.dx / 150 / math.pi;
+        currentAngle -= details.delta.dx / 150 / math.pi;
       });
       endAngle = currentAngle - roundWithDecimalPlaces(currentAngle, 0);
     }
@@ -122,3 +123,155 @@ class PageFlipBuilderState extends State<PageFlipBuilder>
     );
   }
 }
+
+
+class HomePage extends StatelessWidget {
+  HomePage({Key? key});
+
+  final pageFlipBuilderKey = GlobalKey<PageFlipBuilderState>();
+
+  @override
+  Widget build(BuildContext context) {
+    // TODO: Create PageFlipBuilder widget that can be used to flip between
+    // LightHomePage and DarkHomePage
+    return PageFlipBuilder(
+      key: pageFlipBuilderKey,
+      frontWidget: LightHomePage(onFlip: () {
+        pageFlipBuilderKey.currentState?.flip();
+      }),
+      backWidget: DarkHomePage(onFlip: () {
+        pageFlipBuilderKey.currentState?.flip();
+      }),
+    );
+  }
+}
+
+class LightHomePage extends StatelessWidget {
+  const LightHomePage({Key? key, this.onFlip});
+
+  final VoidCallback? onFlip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      data: ThemeData(
+        brightness: Brightness.light,
+        textTheme: TextTheme(
+          displaySmall: Theme.of(context)
+              .textTheme
+              .displaySmall!
+              .copyWith(color: Colors.black87, fontWeight: FontWeight.w600),
+        ),
+      ),
+      child: Scaffold(
+        body: Container(
+          padding: const EdgeInsets.all(24.0),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.red, width: 5),
+          ),
+          child: Column(
+            children: [
+              const ProfileHeader(prompt: 'Hello,\nsunshine!'),
+              const Spacer(),
+              SvgPicture.asset(
+                'assets/forest-day.svg',
+                semanticsLabel: 'Forest',
+                width: 300,
+                height: 300,
+              ),
+              const Spacer(),
+              BottomFlipIconButton(onFlip: onFlip),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class DarkHomePage extends StatelessWidget {
+  const DarkHomePage({Key? key, this.onFlip});
+
+  final VoidCallback? onFlip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      data: ThemeData(
+          brightness: Brightness.dark,
+          textTheme: TextTheme(
+            displaySmall: Theme.of(context)
+                .textTheme
+                .displaySmall!
+                .copyWith(color: Colors.white, fontWeight: FontWeight.w600),
+          )),
+      child: Scaffold(
+        body: Container(
+          padding: const EdgeInsets.all(24.0),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.red, width: 5),
+          ),
+          child: Column(
+            children: [
+              const ProfileHeader(prompt: 'Good night,\nsleep tight!'),
+              const Spacer(),
+              SvgPicture.asset(
+                'assets/forest-night.svg',
+                semanticsLabel: 'Forest',
+                width: 300,
+                height: 300,
+              ),
+              const Spacer(),
+              BottomFlipIconButton(onFlip: onFlip),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ProfileHeader extends StatelessWidget {
+  const ProfileHeader({Key? key, required this.prompt});
+
+  final String prompt;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      bottom: false,
+      child: Row(
+        children: [
+          Text(prompt, style: Theme.of(context).textTheme.displaySmall!),
+          const Spacer(),
+          SvgPicture.asset(
+            'assets/man.svg',
+            semanticsLabel: 'Profile',
+            width: 50,
+            height: 50,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class BottomFlipIconButton extends StatelessWidget {
+  const BottomFlipIconButton({Key? key, this.onFlip});
+
+  final VoidCallback? onFlip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          onPressed: onFlip,
+          icon: const Icon(Icons.flip),
+        )
+      ],
+    );
+  }
+}
+

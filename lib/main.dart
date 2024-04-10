@@ -1,39 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:ui_challenge_002/003/page_flip_builder.dart';
 
+/// A type representing the various available data points
+enum DataPoint {
+  casesTotal('Total Cases', 'assets/count.png', Color(0xFFFFF492)),
+  casesActive('Active Cases', 'assets/fever.png', Color(0xFFE99600)),
+  deaths('Deaths', 'assets/death.png', Color(0xFFE40000)),
+  recovered('Recovered', 'assets/patient.png', Color(0xFF70A901));
 
-Future<void> preloadSVGs() async {
-  final svgList = [
-    'assets/forest-day.svg',
-    'assets/forest-night.svg',
-    'assets/man.svg',
-  ];
-  for (final asset in svgList) {
-    final loader = SvgAssetLoader(asset);
-    await svg.cache.putIfAbsent(
-      loader.cacheKey(null),
-      () => loader.loadBytes(null),
-    );
-  }
+  const DataPoint(this.name, this.assetPath, this.color);
+  final String name;
+  final String assetPath;
+  final Color color;
 }
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await preloadSVGs();
+void main() {
   runApp(const MainApp());
 }
 
 class MainApp extends StatelessWidget {
-  const MainApp({Key? key});
+  const MainApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      themeMode: ThemeMode.dark,
+      theme: ThemeData.dark(),
       home: Scaffold(
-        body: Padding(
-          padding: EdgeInsets.all(16.0),
+        appBar: AppBar(
+          title: const Text('COVID-19 Tracker'),
+        ),
+        body: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16.0),
           // Use Center as layout has unconstrained width (loose constraints),
           // together with SizedBox to specify the max width (tight constraints)
           // See this thread for more info:
@@ -41,7 +39,7 @@ class MainApp extends StatelessWidget {
           child: Center(
             child: SizedBox(
               width: 500, // max allowed width
-              child: HomePage(),
+              child: Dashboard(),
             ),
           ),
         ),
@@ -50,152 +48,19 @@ class MainApp extends StatelessWidget {
   }
 }
 
-class HomePage extends StatelessWidget {
-  HomePage({Key? key});
-
-  final pageFlipBuilderKey = GlobalKey<PageFlipBuilderState>();
+class Dashboard extends StatelessWidget {
+  const Dashboard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Create PageFlipBuilder widget that can be used to flip between
-    // LightHomePage and DarkHomePage
-    return PageFlipBuilder(
-      key: pageFlipBuilderKey,
-      frontWidget: LightHomePage(onFlip: () {
-        pageFlipBuilderKey.currentState?.flip();
-      }),
-      backWidget: DarkHomePage(onFlip: () {
-        pageFlipBuilderKey.currentState?.flip();
-      }),
-    );
-  }
-}
-
-class LightHomePage extends StatelessWidget {
-  const LightHomePage({Key? key, this.onFlip});
-
-  final VoidCallback? onFlip;
-
-  @override
-  Widget build(BuildContext context) {
-    return Theme(
-      data: ThemeData(
-        brightness: Brightness.light,
-        textTheme: TextTheme(
-          displaySmall: Theme.of(context)
-              .textTheme
-              .displaySmall!
-              .copyWith(color: Colors.black87, fontWeight: FontWeight.w600),
-        ),
-      ),
-      child: Scaffold(
-        body: Container(
-          padding: const EdgeInsets.all(24.0),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.red, width: 5),
-          ),
-          child: Column(
-            children: [
-              const ProfileHeader(prompt: 'Hello,\nsunshine!'),
-              const Spacer(),
-              SvgPicture.asset(
-                'assets/forest-day.svg',
-                semanticsLabel: 'Forest',
-                width: 300,
-                height: 300,
-              ),
-              const Spacer(),
-              BottomFlipIconButton(onFlip: onFlip),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class DarkHomePage extends StatelessWidget {
-  const DarkHomePage({Key? key, this.onFlip});
-
-  final VoidCallback? onFlip;
-
-  @override
-  Widget build(BuildContext context) {
-    return Theme(
-      data: ThemeData(
-          brightness: Brightness.dark,
-          textTheme: TextTheme(
-            displaySmall: Theme.of(context)
-                .textTheme
-                .displaySmall!
-                .copyWith(color: Colors.white, fontWeight: FontWeight.w600),
-          )),
-      child: Scaffold(
-        body: Container(
-          padding: const EdgeInsets.all(24.0),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.red, width: 5),
-          ),
-          child: Column(
-            children: [
-              const ProfileHeader(prompt: 'Good night,\nsleep tight!'),
-              const Spacer(),
-              SvgPicture.asset(
-                'assets/forest-night.svg',
-                semanticsLabel: 'Forest',
-                width: 300,
-                height: 300,
-              ),
-              const Spacer(),
-              BottomFlipIconButton(onFlip: onFlip),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class ProfileHeader extends StatelessWidget {
-  const ProfileHeader({Key? key, required this.prompt});
-
-  final String prompt;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      bottom: false,
-      child: Row(
-        children: [
-          Text(prompt, style: Theme.of(context).textTheme.displaySmall!),
-          const Spacer(),
-          SvgPicture.asset(
-            'assets/man.svg',
-            semanticsLabel: 'Profile',
-            width: 50,
-            height: 50,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class BottomFlipIconButton extends StatelessWidget {
-  const BottomFlipIconButton({Key? key, this.onFlip});
-
-  final VoidCallback? onFlip;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          onPressed: onFlip,
-          icon: const Icon(Icons.flip),
-        )
-      ],
-    );
+    // Some random values
+    final values = [
+      9231249,
+      123214,
+      51245,
+      7452340,
+    ];
+    // TODO: Implement UI
+    return const Placeholder();
   }
 }
