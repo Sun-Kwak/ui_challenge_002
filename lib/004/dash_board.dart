@@ -2,6 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:ui_challenge_002/main.dart';
 
+/// A type representing the various available data points
+enum DataPoint {
+  casesTotal('Total Cases', 'assets/count.png', Color(0xFFFFF492)),
+  casesActive('Active Cases', 'assets/fever.png', Color(0xFFE99600)),
+  deaths('Deaths', 'assets/death.png', Color(0xFFE40000)),
+  recovered('Recovered', 'assets/patient.png', Color(0xFF70A901));
+
+  const DataPoint(this.name, this.assetPath, this.color);
+  final String name;
+  final String assetPath;
+  final Color color;
+}
+
+
 class Dashboard extends StatelessWidget {
   const Dashboard({Key? key}) : super(key: key);
 
